@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { fetchInboxMessages } from './graph.js';
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
 const MODEL = process.env.TRIAGE_MODEL ?? 'llama3.2:3b';
@@ -70,9 +71,22 @@ async function runTest() {
   console.log(`\n${correct}/${emails.length} correct. Average latency: ${avgMs}ms per email.`);
 }
 
+async function runLive() {
+  console.log(`Fetching live inbox messages via Graph API using model "${MODEL}" at ${OLLAMA_URL}\n`);
+  const emails = await fetchInboxMessages();
+  await runTriage(emails);
+}
+
 if (process.argv.includes('--test')) {
   runTest().catch((err) => {
     console.error('Triage test failed:', err.message);
+    process.exit(1);
+  });
+}
+
+if (process.argv.includes('--live')) {
+  runLive().catch((err) => {
+    console.error('Live triage run failed:', err.message);
     process.exit(1);
   });
 }
