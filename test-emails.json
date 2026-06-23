@@ -1,0 +1,58 @@
+[
+  {
+    "id": "synthetic-001",
+    "from": "constituent@example.com",
+    "subject": "Question about Medicare enrollment",
+    "body": "I'm turning 65 next month and I'm confused about when I need to sign up for Medicare Part B. Can someone from the office help explain the deadlines? Thank you.",
+    "expected_urgent": false
+  },
+  {
+    "id": "synthetic-002",
+    "from": "constituent@example.com",
+    "subject": "Newsletter unsubscribe",
+    "body": "Please remove me from this mailing list.",
+    "expected_urgent": false
+  },
+  {
+    "id": "synthetic-003",
+    "from": "constituent@example.com",
+    "subject": "My father is stuck overseas and needs help",
+    "body": "My father is a Wyoming resident currently traveling in a country where the embassy has been unreachable for two days due to a regional emergency. We need help getting him home as soon as possible. Please call me back today.",
+    "expected_urgent": true
+  },
+  {
+    "id": "synthetic-004",
+    "from": "constituent@example.com",
+    "subject": "Thank you",
+    "body": "Just wanted to say thanks to the Senator's office for the help with my VA claim last year.",
+    "expected_urgent": false
+  },
+  {
+    "id": "synthetic-005",
+    "from": "constituent@example.com",
+    "subject": "Threat made against the office",
+    "body": "I am writing to report that someone in my town has been making threatening statements about harming Senator Barrasso at a public event next week. I think someone should look into this immediately.",
+    "expected_urgent": true
+  },
+  {
+    "id": "synthetic-006",
+    "from": "constituent@example.com",
+    "subject": "Support for upcoming energy bill",
+    "body": "I wanted to share my strong support for the energy legislation currently being discussed. Wyoming families depend on this industry and I hope the Senator continues to back it.",
+    "expected_urgent": false
+  },
+  {
+    "id": "synthetic-007",
+    "from": "constituent@example.com",
+    "subject": "Flooding damage to ranch, need disaster assistance info",
+    "body": "Our ranch sustained serious flood damage this week and we have livestock at risk. We need to know what federal disaster assistance is available right now, this is time sensitive.",
+    "expected_urgent": true
+  },
+  {
+    "id": "synthetic-008",
+    "from": "constituent@example.com",
+    "subject": "General feedback on town hall",
+    "body": "I attended the town hall last month and thought it was well organized. A few suggestions for next time: more time for Q&A, and a bigger venue.",
+    "expected_urgent": false
+  }
+]

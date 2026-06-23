@@ -1,0 +1,9 @@
+{
+  "name": "barrasso-computer-pilot",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local-model triage pilot for Barrasso office EliteDesk box (Ollama-based, synthetic test data only)",
+  "scripts": {
+    "test": "node triage.js --test"
+  }
+}
