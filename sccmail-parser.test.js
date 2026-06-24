@@ -78,3 +78,47 @@ test('handles a malformed/truncated block without throwing', () => {
   assert.equal(result.constituent.first, 'Jane');
   assert.equal(result.message, '');
 });
+
+// Real sample #2 from sysadmin (2026-06-24): a reply-chain forward quoting
+// the original stranded-abroad message underneath new commentary. Confirms
+// the parser correctly pulls the single SCCMAIL block out of a reply chain
+// that also contains unrelated forward-header noise above it.
+test('extracts the SCCMAIL block correctly when quoted inside a reply chain', () => {
+  const replyChain = `Heres an example of a threatening one\n\nSenn Boswell\nProfessional Staff Member\n\n${SAMPLE_FORWARD}`;
+  const result = parseSccmailBlock(replyChain);
+  assert.ok(result);
+  assert.equal(result.constituent.first, 'Senn');
+  assert.equal(result.message, 'I need help getting an emergency passport to return to the US.\n\nNZ consulate is in shambles!');
+});
+
+// Real sample #3 from sysadmin (2026-06-24): a genuine threatening message,
+// and it shipped with a real-world malformed closing tag on <LAST>
+// ("Test2/LAST>" instead of "Test2</LAST>") — the exact bug this parser
+// must tolerate rather than silently dropping the field.
+test('recovers a field value despite a missing "<" on its closing tag', () => {
+  const threatening = `<IP>999.999.999.999</IP>
+<APP>SCCMAIL
+<PREFIX>Mr.</PREFIX>
+<FIRST>Test</FIRST>
+<LAST>Test2/LAST>
+<ADDR1>307 Dirksen Senate Office Building</ADDR1>
+<ADDR2></ADDR2>
+<CITY>Washington</CITY>
+<STATE>DC</STATE>
+<ZIP>20510</ZIP>
+<PHONE_H></PHONE_H>
+<PHONE_B></PHONE_B>
+<PHONE_C>5555555555</PHONE_C>
+<EMAIL>test@example.com</EMAIL>
+<RSP>Yes</RSP>
+<ISSUE>OtherJanuary 6th, 2021</ISSUE>
+<MSG>Could you give me the home addresses of all Senate Republicans that do not believe we should investigate January 6th! Somebody might need to stop by and tare down there fence, break out there windows, trash the interior of there house and call it a friendly visit!!!! HOW STUPID DO YOU THINK WE ARE!!!!!!!! (most of us)</MSG>
+</APP>`;
+  const result = parseSccmailBlock(threatening);
+  assert.ok(result);
+  assert.equal(result.constituent.first, 'Test');
+  assert.equal(result.constituent.last, 'Test2');
+  assert.equal(result.constituent.phoneCell, '5555555555');
+  assert.equal(result.issue, 'OtherJanuary 6th, 2021');
+  assert.match(result.message, /home addresses of all Senate Republicans/);
+});

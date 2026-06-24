@@ -11,7 +11,10 @@ const FIELD_TAGS = [
 ];
 
 function extractTag(text, tag) {
-  const match = text.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+  // The office's mail system has been observed to drop the leading "<" on a
+  // closing tag (e.g. "<LAST>Test2/LAST>" instead of "<LAST>Test2</LAST>") —
+  // tolerate that so a single typo upstream doesn't silently blank a field.
+  const match = text.match(new RegExp(`<${tag}>([\\s\\S]*?)<?\\/${tag}>`, 'i'));
   return match ? match[1].trim() : '';
 }
 
