@@ -7,6 +7,7 @@
     "test": "node triage.js --test"
   },
   "dependencies": {
-    "@azure/msal-node": "^5.2.5"
+    "@azure/msal-node": "^5.2.5",
+    "mailparser": "^3.9.11"
   }
 }

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { fetchInboxMessages } from './graph.js';
+import { watchFolder } from './folder-watch.js';
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
 const MODEL = process.env.TRIAGE_MODEL ?? 'llama3.2:3b';
@@ -77,6 +78,18 @@ async function runLive() {
   await runTriage(emails);
 }
 
+async function classifyAndLog(email) {
+  const start = Date.now();
+  const result = await classifyEmail(email);
+  const elapsedMs = Date.now() - start;
+  console.log(`[${email.id}] urgent=${result.urgent} category=${result.category} sentiment=${result.sentiment} (${elapsedMs}ms)`);
+  if (result.urgent) alert(email, result);
+}
+
+async function runWatch(folderPath) {
+  await watchFolder(folderPath, classifyAndLog);
+}
+
 if (process.argv.includes('--test')) {
   runTest().catch((err) => {
     console.error('Triage test failed:', err.message);
@@ -87,6 +100,19 @@ if (process.argv.includes('--test')) {
 if (process.argv.includes('--live')) {
   runLive().catch((err) => {
     console.error('Live triage run failed:', err.message);
+    process.exit(1);
+  });
+}
+
+const watchIndex = process.argv.indexOf('--watch');
+if (watchIndex !== -1) {
+  const folderPath = process.argv[watchIndex + 1];
+  if (!folderPath) {
+    console.error('Usage: node triage.js --watch <folder-path>');
+    process.exit(1);
+  }
+  runWatch(folderPath).catch((err) => {
+    console.error('Folder watch failed:', err.message);
     process.exit(1);
   });
 }
