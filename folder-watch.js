@@ -1,16 +1,34 @@
 import { readdir, readFile, mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { simpleParser } from 'mailparser';
+import { parseSccmailBlock } from './sccmail-parser.js';
 
 async function parseEmlFile(filePath) {
   const raw = await readFile(filePath);
   const parsed = await simpleParser(raw);
-  return {
+  const rawBody = parsed.text ?? parsed.html ?? '';
+
+  const email = {
     id: filePath,
     from: parsed.from?.text ?? 'unknown',
     subject: parsed.subject ?? '(no subject)',
-    body: parsed.text ?? parsed.html ?? '',
+    body: rawBody,
+    rawBody,
   };
+
+  // Casework intake emails wrap the constituent's actual message in a
+  // SCCMAIL <APP> block alongside contact fields and forward-header noise.
+  // Use the clean message text for classification and surface contact
+  // fields separately so they aren't lost or fed to the model as prose.
+  const sccmail = parseSccmailBlock(rawBody);
+  if (sccmail) {
+    email.body = sccmail.message || rawBody;
+    email.constituent = sccmail.constituent;
+    email.issue = sccmail.issue;
+    email.responseRequested = sccmail.responseRequested;
+  }
+
+  return email;
 }
 
 async function pollFolder(folderPath, onEmail) {
