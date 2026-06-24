@@ -5,6 +5,9 @@ import { watchFolder } from './folder-watch.js';
 import { BENCHMARK_EMAILS } from './benchmark-emails.js';
 import { calculateMetrics, formatMetrics, validateClassification } from './evaluation.js';
 import { TOOL_NAMES, buildToolPlan, dispatchToolPlan } from './tool-routing.js';
+import { detectPromptInjection } from './injection-guard.js';
+import { recipientsFor } from './alert-routing.js';
+import { sendAlertEmail } from './send-alert.js';
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
 const MODEL = process.env.TRIAGE_MODEL ?? 'llama3.2:3b';
@@ -47,12 +50,34 @@ async function classifyEmail(email) {
   if (!validation.valid) {
     throw new Error(`Invalid classifier response: ${validation.error}`);
   }
+
+  const injection = detectPromptInjection(email.body);
+  if (injection.detected && !result.urgent) {
+    return {
+      ...result,
+      urgent: true,
+      priority: 'critical',
+      reason: `Escalated: suspected prompt-injection attempt detected in message body (${injection.matches.join(', ')}). Original model reason: ${result.reason}`,
+    };
+  }
+
   return result;
 }
 
-function alert(email, result) {
-  // Placeholder — actual notification channel TBD with the office (email, Teams, SMS).
+async function alert(email, result) {
   console.log(`\n*** URGENT ALERT *** [${email.id}] "${email.subject}" — ${result.reason}\n`);
+
+  const recipients = recipientsFor(result.category);
+  try {
+    const outcome = await sendAlertEmail({
+      recipients,
+      subject: `[URGENT] ${email.subject}`,
+      body: `Category: ${result.category}\nReason: ${result.reason}\n\nOriginal subject: ${email.subject}\nFrom: ${email.from}\n\n${email.body}`,
+    });
+    if (!outcome.sent) console.warn(`Alert email not sent for [${email.id}]: ${outcome.reason}`);
+  } catch (err) {
+    console.error(`Failed to send alert email for [${email.id}]:`, err.message);
+  }
 }
 
 const handlers = {
@@ -60,7 +85,7 @@ const handlers = {
     console.log(`[TriageLog] ${payload.emailId} category=${payload.classification.category} intent=${payload.classification.intent}`);
   },
   [TOOL_NAMES.NOTIFY_STAFF]: async (payload) => {
-    alert({ id: payload.emailId, subject: payload.subject }, payload.classification);
+    await alert({ id: payload.emailId, subject: payload.subject, from: payload.from, body: payload.body }, payload.classification);
   },
 };
 

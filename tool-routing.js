@@ -24,6 +24,7 @@ function buildToolPlan(email, classification) {
     emailId: email.id,
     from: email.from ?? 'unknown',
     subject: email.subject,
+    body: email.body ?? '',
     classification,
   };
 
