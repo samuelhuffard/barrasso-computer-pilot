@@ -15,16 +15,23 @@ async function parseEmlFile(filePath) {
 
 async function pollFolder(folderPath, onEmail) {
   const processedDir = join(folderPath, 'processed');
+  const failedDir = join(folderPath, 'failed');
   await mkdir(processedDir, { recursive: true });
+  await mkdir(failedDir, { recursive: true });
 
   const entries = await readdir(folderPath);
   const emlFiles = entries.filter((name) => name.toLowerCase().endsWith('.eml'));
 
   for (const name of emlFiles) {
     const filePath = join(folderPath, name);
-    const email = await parseEmlFile(filePath);
-    await onEmail(email);
-    await rename(filePath, join(processedDir, name));
+    try {
+      const email = await parseEmlFile(filePath);
+      await onEmail(email);
+      await rename(filePath, join(processedDir, name));
+    } catch (err) {
+      console.error(`Failed to process ${name}, moving to ${failedDir}: ${err.message}`);
+      await rename(filePath, join(failedDir, name));
+    }
   }
 
   return emlFiles.length;

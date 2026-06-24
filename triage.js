@@ -64,6 +64,24 @@ async function classifyEmail(email) {
   return result;
 }
 
+async function classifyEmailSafe(email) {
+  try {
+    return await classifyEmail(email);
+  } catch (err) {
+    console.warn(`Classifier error for [${email.id}], defaulting to manual-review escalation: ${err.message}`);
+    return {
+      urgent: true,
+      priority: 'critical',
+      category: 'other',
+      intent: 'other',
+      needs_reply: true,
+      sentiment: 'neutral',
+      topics: ['classifier_error'],
+      reason: `Could not parse classifier response — flagged for manual review (${err.message})`,
+    };
+  }
+}
+
 async function alert(email, result) {
   console.log(`\n*** URGENT ALERT *** [${email.id}] "${email.subject}" — ${result.reason}\n`);
 
@@ -91,7 +109,7 @@ const handlers = {
 
 async function processEmail(email) {
   const start = Date.now();
-  const result = await classifyEmail(email);
+  const result = await classifyEmailSafe(email);
   const elapsedMs = Date.now() - start;
   const toolPlan = buildToolPlan(email, result);
   const toolOutcomes = await dispatchToolPlan(
