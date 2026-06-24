@@ -4,7 +4,9 @@
   "type": "module",
   "description": "Local-model triage pilot for Barrasso office EliteDesk box (Ollama-based, synthetic test data only)",
   "scripts": {
-    "test": "node triage.js --test"
+    "test": "node --test",
+    "test:pilot": "node triage.js --test",
+    "benchmark": "node triage.js --benchmark"
   },
   "dependencies": {
     "@azure/msal-node": "^5.2.5",
