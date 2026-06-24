@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-// Calls the sysadmin's PowerShell mail-send script. Exact parameter names are placeholders
-// until the real script and its expected arguments arrive — update SCRIPT_PATH and the
-// argument list below to match once we have it.
-const SCRIPT_PATH = process.env.ALERT_SCRIPT_PATH ?? 'C:\\scripts\\send-alert.ps1';
+// Calls send-alert.ps1 (bundled in this repo), which wraps PowerShell's built-in
+// Send-MailMessage cmdlet against the internal Senate mail relay (imail.senate.gov,
+// port 25, unauthenticated) — based on the sysadmin's existing alerting script pattern.
+const SCRIPT_PATH = process.env.ALERT_SCRIPT_PATH ?? fileURLToPath(new URL('./send-alert.ps1', import.meta.url));
 
 function sendAlertEmail({ recipients, subject, body }) {
   return new Promise((resolve, reject) => {
