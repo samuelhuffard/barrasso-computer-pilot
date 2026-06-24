@@ -1,3 +1,6 @@
 node_modules/
 .env
 benchmark-results/
+data/correspondence.json
+dashboard/.next/
+dashboard/node_modules/
