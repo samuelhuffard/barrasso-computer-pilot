@@ -9,8 +9,12 @@ import {
 
 const validResult = {
   urgent: false,
+  priority: 'normal',
   category: 'casework',
+  intent: 'request_assistance',
+  needs_reply: true,
   sentiment: 'neutral',
+  topics: ['benefits'],
   reason: 'Routine request.',
 };
 
@@ -21,8 +25,12 @@ test('validateClassification accepts the required response schema', () => {
 test('validateClassification rejects malformed fields', () => {
   assert.equal(validateClassification(null).valid, false);
   assert.equal(validateClassification({ ...validResult, urgent: 'false' }).valid, false);
+  assert.equal(validateClassification({ ...validResult, priority: 'immediate' }).valid, false);
   assert.equal(validateClassification({ ...validResult, category: 'emergency' }).valid, false);
+  assert.equal(validateClassification({ ...validResult, intent: 'send_email' }).valid, false);
+  assert.equal(validateClassification({ ...validResult, needs_reply: 'yes' }).valid, false);
   assert.equal(validateClassification({ ...validResult, sentiment: 'angry' }).valid, false);
+  assert.equal(validateClassification({ ...validResult, topics: ['Energy Policy'] }).valid, false);
   assert.equal(validateClassification({ ...validResult, reason: '' }).valid, false);
 });
 
@@ -35,7 +43,13 @@ test('percentile uses nearest-rank behavior', () => {
 test('calculateMetrics distinguishes misses, false alerts, and invalid responses', () => {
   const outcomes = [
     {
-      email: { id: 'tp', expected_urgent: true },
+      email: {
+        id: 'tp',
+        expected_urgent: true,
+        expected_category: 'threat_or_safety',
+        expected_intent: 'report_threat_or_safety',
+        expected_needs_reply: true,
+      },
       result: { ...validResult, urgent: true, category: 'threat_or_safety' },
       elapsedMs: 100,
     },
@@ -79,6 +93,10 @@ test('calculateMetrics distinguishes misses, false alerts, and invalid responses
   assert.equal(metrics.urgentPrecision, 0.5);
   assert.equal(metrics.specificity, 0.5);
   assert.equal(metrics.validResponseRate, 4 / 6);
+  assert.equal(metrics.routing.categoryAccuracy, 1);
+  assert.equal(metrics.routing.intentAccuracy, 0);
+  assert.equal(metrics.routing.needsReplyAccuracy, 1);
+  assert.equal(metrics.routing.mismatches.length, 1);
   assert.deepEqual(metrics.latencyMs, {
     average: 350,
     p50: 300,
@@ -91,7 +109,13 @@ test('calculateMetrics distinguishes misses, false alerts, and invalid responses
 test('formatMetrics emphasizes urgent recall and latency percentiles', () => {
   const metrics = calculateMetrics([
     {
-      email: { id: 'tp', expected_urgent: true },
+      email: {
+        id: 'tp',
+        expected_urgent: true,
+        expected_category: 'threat_or_safety',
+        expected_intent: 'report_threat_or_safety',
+        expected_needs_reply: true,
+      },
       result: { ...validResult, urgent: true, category: 'threat_or_safety' },
       elapsedMs: 125,
     },
@@ -99,5 +123,6 @@ test('formatMetrics emphasizes urgent recall and latency percentiles', () => {
 
   const output = formatMetrics(metrics);
   assert.match(output, /Urgent recall: 100\.0%/);
+  assert.match(output, /Category accuracy: 100\.0%/);
   assert.match(output, /p95 125ms/);
 });

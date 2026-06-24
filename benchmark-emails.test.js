@@ -40,3 +40,11 @@ test('benchmark corpus never exposes expected labels in ordinary messages', () =
     assert.doesNotMatch(email.body, /expected_urgent/i);
   }
 });
+
+test('every benchmark case has expected routing labels', () => {
+  for (const email of BENCHMARK_EMAILS) {
+    assert.equal(typeof email.expected_category, 'string');
+    assert.equal(typeof email.expected_intent, 'string');
+    assert.equal(typeof email.expected_needs_reply, 'boolean');
+  }
+});

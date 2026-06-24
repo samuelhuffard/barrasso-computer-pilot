@@ -76,6 +76,7 @@ Also inspect:
 - Schema failures: 0
 - Request failures: 0
 - False positives: review each individually
+- Category, intent, and needs-reply accuracy: review every mismatch before enabling downstream tools
 - p95 latency: acceptable for asynchronous inbox polling
 
 Passing this benchmark supports continued pilot testing. It does not establish production readiness.

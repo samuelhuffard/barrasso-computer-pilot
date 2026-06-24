@@ -7,6 +7,7 @@ This benchmark uses 200 entirely synthetic messages. It does not connect to Micr
 - **Urgent recall:** percentage of real emergencies caught. This is the primary safety metric.
 - **False positives:** routine messages incorrectly escalated.
 - **Valid-response rate:** percentage of responses matching the required JSON schema.
+- **Routing accuracy:** category, intent, and whether a staff reply is likely needed.
 - **Latency:** average, p50, p95, and maximum response time.
 
 The corpus is balanced: 100 urgent and 100 non-urgent cases. Each semantic scenario appears in five formats:
@@ -83,6 +84,7 @@ Minimum pilot standard:
 - Urgent recall: 100%
 - Schema/request failures: 0
 - False positives: inspect individually; some extra alerts are acceptable
+- Category/intent/needs-reply accuracy: inspect mismatches before enabling any downstream route
 - p95 latency: acceptable for the office’s intended polling interval
 
 This is still a synthetic benchmark. Passing it does not authorize production use or replace review with office IT/security staff.

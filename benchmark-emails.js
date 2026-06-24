@@ -1,5 +1,58 @@
+function expectedRoute(id, expectedUrgent) {
+  if (expectedUrgent) {
+    return {
+      category: 'threat_or_safety',
+      intent: 'report_threat_or_safety',
+      needsReply: true,
+    };
+  }
+  if (id.startsWith('angry-') || id.startsWith('policy-')) {
+    return {
+      category: 'policy_opinion',
+      intent: 'share_opinion',
+      needsReply: false,
+    };
+  }
+  if (id.startsWith('casework-') || id.startsWith('service-complaint-')) {
+    return {
+      category: 'casework',
+      intent: 'request_assistance',
+      needsReply: true,
+    };
+  }
+  if (id === 'administrative-01') {
+    return {
+      category: 'administrative',
+      intent: 'request_meeting',
+      needsReply: true,
+    };
+  }
+  if (id === 'administrative-02') {
+    return {
+      category: 'administrative',
+      intent: 'unsubscribe',
+      needsReply: false,
+    };
+  }
+  return {
+    category: 'other',
+    intent: 'provide_information',
+    needsReply: false,
+  };
+}
+
 function base(id, expectedUrgent, tags, subject, body) {
-  return { id, expected_urgent: expectedUrgent, tags, subject, body };
+  const route = expectedRoute(id, expectedUrgent);
+  return {
+    id,
+    expected_urgent: expectedUrgent,
+    expected_category: route.category,
+    expected_intent: route.intent,
+    expected_needs_reply: route.needsReply,
+    tags,
+    subject,
+    body,
+  };
 }
 
 const BASE_SCENARIOS = [
@@ -98,6 +151,9 @@ const BENCHMARK_EMAILS = BASE_SCENARIOS.flatMap((scenario) =>
       subject: wrapped.subject,
       body: wrapped.body,
       expected_urgent: scenario.expected_urgent,
+      expected_category: scenario.expected_category,
+      expected_intent: scenario.expected_intent,
+      expected_needs_reply: scenario.expected_needs_reply,
       tags: [...scenario.tags, ...wrapped.tags],
     };
   }),
