@@ -6,6 +6,7 @@ import { BENCHMARK_EMAILS } from './benchmark-emails.js';
 import { calculateMetrics, formatMetrics, validateClassification } from './evaluation.js';
 import { TOOL_NAMES, buildToolPlan, dispatchToolPlan } from './tool-routing.js';
 import { detectPromptInjection } from './injection-guard.js';
+import { normalizeClassification } from './normalize.js';
 import { recipientsFor } from './alert-routing.js';
 import { sendAlertEmail } from './send-alert.js';
 
@@ -14,7 +15,8 @@ const MODEL = process.env.TRIAGE_MODEL ?? 'llama3.2:3b';
 
 const SYSTEM_PROMPT = `You are a triage classifier for a U.S. Senate office's constituent correspondence inbox.
 Read the email below and respond with ONLY a JSON object, no other text, in this exact shape:
-{"urgent": true|false, "priority": "critical"|"high"|"normal"|"low", "category": "casework"|"policy_opinion"|"threat_or_safety"|"administrative"|"other", "intent": "request_assistance"|"share_opinion"|"request_meeting"|"unsubscribe"|"report_threat_or_safety"|"provide_information"|"other", "needs_reply": true|false, "sentiment": "positive"|"neutral"|"negative", "topics": ["up_to_3_short_snake_case_topics"], "reason": "one short sentence"}
+{"urgent": true|false, "priority": "critical"|"high"|"normal"|"low", "category": "casework"|"policy_opinion"|"threat_or_safety"|"administrative"|"other", "intent": "request_assistance"|"share_opinion"|"request_meeting"|"unsubscribe"|"report_threat_or_safety"|"provide_information"|"other", "needs_reply": true|false, "sentiment": "positive"|"neutral"|"negative", "topics": [<at most 3 short snake_case strings specific to this email, e.g. "medicare_enrollment">], "reason": "one short sentence"}
+The "intent" field must be exactly one of the seven listed values above — do not invent a different value.
 
 Mark "urgent": true for genuine emergencies requiring same-day human attention: threats of violence (direct, conditional, or euphemistic), a constituent trapped/endangered/missing abroad, immediate safety risk, active disaster/medical emergency, reports of trafficking or a missing child. Do not mark policy opinions, routine casework, or complaints as urgent.
 Set priority to "critical" whenever urgent is true. Use "high" for time-sensitive but non-emergency staff attention, "normal" for routine work, and "low" for informational or no-action messages.
@@ -45,7 +47,7 @@ async function classifyEmail(email) {
   }
 
   const data = await res.json();
-  const result = JSON.parse(data.response);
+  const result = normalizeClassification(JSON.parse(data.response));
   const validation = validateClassification(result);
   if (!validation.valid) {
     throw new Error(`Invalid classifier response: ${validation.error}`);
