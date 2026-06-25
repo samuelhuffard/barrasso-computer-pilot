@@ -9,6 +9,7 @@ import { detectPromptInjection } from './injection-guard.js';
 import { normalizeClassification } from './normalize.js';
 import { recipientsFor } from './alert-routing.js';
 import { sendAlertEmail } from './send-alert.js';
+import { appendRecord, buildRecord } from './correspondence-store.js';
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
 const MODEL = process.env.TRIAGE_MODEL ?? 'llama3.2:3b';
@@ -50,7 +51,9 @@ async function classifyEmail(email) {
   const result = normalizeClassification(JSON.parse(data.response));
   const validation = validateClassification(result);
   if (!validation.valid) {
-    throw new Error(`Invalid classifier response: ${validation.error}`);
+    const error = new Error(`Invalid classifier response: ${validation.error}`);
+    error.rawResponse = data.response;
+    throw error;
   }
 
   const injection = detectPromptInjection(email.body);
@@ -119,6 +122,7 @@ async function processEmail(email) {
     handlers,
     [TOOL_NAMES.LOG_TRIAGE, TOOL_NAMES.NOTIFY_STAFF],
   );
+  await appendRecord(buildRecord(email, result));
   return { email, result, toolPlan, toolOutcomes, elapsedMs };
 }
 
@@ -179,7 +183,12 @@ async function runBenchmark() {
       console.log(`[${index + 1}/${emails.length}] ${marker} ${email.id} expected=${email.expected_urgent} actual=${result.urgent} ${elapsedMs}ms`);
     } catch (error) {
       const elapsedMs = Date.now() - start;
-      outcomes.push({ email, error: error.message, elapsedMs });
+      outcomes.push({
+        email,
+        error: error.message,
+        ...(error.rawResponse ? { rawResponse: error.rawResponse } : {}),
+        elapsedMs,
+      });
       console.log(`[${index + 1}/${emails.length}] ERROR ${email.id} ${elapsedMs}ms — ${error.message}`);
     }
   }

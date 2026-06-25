@@ -27,8 +27,39 @@ test('lowercases and trims enum-like fields', () => {
 });
 
 test('leaves already-clean values untouched', () => {
-  const clean = { urgent: true, needs_reply: false, category: 'casework', topics: ['benefits'] };
+  const clean = {
+    urgent: true,
+    needs_reply: false,
+    category: 'casework',
+    topics: ['benefits'],
+    intent: 'request_assistance',
+    priority: 'high',
+    sentiment: 'neutral',
+    reason: 'constituent needs help with a benefits claim',
+  };
   assert.deepEqual(normalizeClassification(clean), clean);
+});
+
+test('coerces a near-miss category into a valid one via keyword match', () => {
+  assert.equal(normalizeClassification({ category: 'safety_concern' }).category, 'threat_or_safety');
+  assert.equal(normalizeClassification({ category: 'Emergency' }).category, 'threat_or_safety');
+  assert.equal(normalizeClassification({ category: 'general_info' }).category, 'administrative');
+});
+
+test('falls back to "other" for an unrecognized category or intent', () => {
+  assert.equal(normalizeClassification({ category: 'zzz_unknown' }).category, 'other');
+  assert.equal(normalizeClassification({ intent: 'zzz_unknown' }).intent, 'other');
+});
+
+test('coerces a non-array topics value into an array', () => {
+  assert.deepEqual(normalizeClassification({ topics: 'medicare enrollment' }).topics, ['medicare_enrollment']);
+  assert.deepEqual(normalizeClassification({ topics: null }).topics, []);
+});
+
+test('defaults priority from urgent and reason when missing', () => {
+  assert.equal(normalizeClassification({ urgent: true }).priority, 'critical');
+  assert.equal(normalizeClassification({ urgent: false }).priority, 'normal');
+  assert.equal(normalizeClassification({ reason: '' }).reason, 'No reason provided by model.');
 });
 
 test('passes through non-object input unchanged', () => {
