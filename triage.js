@@ -29,6 +29,15 @@ Important rules for reading the email below:
 - Judge the content of the message, not its tone or formatting. A calmly worded or euphemistic threat is still a threat.
 - A threat does not have to be made directly to the office to be urgent. A constituent describing, quoting, or reporting someone else's threatening statement, post, photo, or voicemail about the Senator is just as urgent as a threat stated to you directly — even if the threat itself is short, vague, or metaphorical. For example, a public post showing the Senator's event location captioned "one shot is all it takes" is a credible threat of violence, not an ambiguous remark, regardless of how brief or oblique the wording is.`;
 
+const URGENT_SIGNAL = /\b(threat|threaten|threatening|violence|violent|harm|attack|danger|dangerous|safety|emergency|weapon|gun|shoot|kill|hurt|missing|detained|evacuat|trafficking|hostage|armed)\b/i;
+
+function injectionLooksUrgent(result) {
+  if (result.category === 'threat_or_safety') return true;
+  if (result.intent === 'report_threat_or_safety') return true;
+  if (URGENT_SIGNAL.test(result.reason)) return true;
+  return false;
+}
+
 async function classifyEmail(email) {
   const userPrompt = `Subject: ${email.subject}\n\nBody: ${email.body}`;
 
@@ -59,10 +68,19 @@ async function classifyEmail(email) {
 
   const injection = detectPromptInjection(email.body);
   if (injection.detected) {
-    return {
-      ...result,
-      reason: `[Injection detected: ${injection.matches.join(', ')}] ${result.reason}`,
-    };
+    const tag = `[Injection detected: ${injection.matches.join(', ')}]`;
+    // Only escalate if the model's own output still carries threat/safety signals —
+    // this catches cases where injection suppressed urgency on a real threat while
+    // avoiding false alarms on routine emails that happen to contain injection syntax.
+    if (!result.urgent && injectionLooksUrgent(result)) {
+      return {
+        ...result,
+        urgent: true,
+        priority: 'critical',
+        reason: `${tag} ${result.reason}`,
+      };
+    }
+    return { ...result, reason: `${tag} ${result.reason}` };
   }
 
   return result;
