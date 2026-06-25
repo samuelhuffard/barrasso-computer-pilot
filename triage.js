@@ -58,12 +58,10 @@ async function classifyEmail(email) {
   }
 
   const injection = detectPromptInjection(email.body);
-  if (injection.detected && !result.urgent) {
+  if (injection.detected) {
     return {
       ...result,
-      urgent: true,
-      priority: 'critical',
-      reason: `Escalated: suspected prompt-injection attempt detected in message body (${injection.matches.join(', ')}). Original model reason: ${result.reason}`,
+      reason: `[Injection detected: ${injection.matches.join(', ')}] ${result.reason}`,
     };
   }
 
