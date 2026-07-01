@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test",
     "test:pilot": "node triage.js --test",
-    "benchmark": "node triage.js --benchmark"
+    "benchmark": "node triage.js --benchmark",
+    "report": "node report.js"
   },
   "dependencies": {
     "@azure/msal-node": "^5.2.5",

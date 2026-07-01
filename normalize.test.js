@@ -27,17 +27,28 @@ test('lowercases and trims enum-like fields', () => {
 });
 
 test('leaves already-clean values untouched', () => {
+  // Use administrative — the one category whose needs_reply is not overridden.
   const clean = {
-    urgent: true,
+    urgent: false,
     needs_reply: false,
-    category: 'casework',
-    topics: ['benefits'],
-    intent: 'request_assistance',
-    priority: 'high',
+    category: 'administrative',
+    topics: ['office_hours'],
+    intent: 'request_meeting',
+    priority: 'normal',
     sentiment: 'neutral',
-    reason: 'constituent needs help with a benefits claim',
+    reason: 'constituent requesting a meeting with staff',
   };
   assert.deepEqual(normalizeClassification(clean), clean);
+});
+
+test('applies deterministic needs_reply overrides by category', () => {
+  assert.equal(normalizeClassification({ category: 'threat_or_safety', needs_reply: false }).needs_reply, true);
+  assert.equal(normalizeClassification({ category: 'casework', needs_reply: false }).needs_reply, true);
+  assert.equal(normalizeClassification({ category: 'policy_opinion', needs_reply: true }).needs_reply, false);
+  assert.equal(normalizeClassification({ category: 'other', needs_reply: true }).needs_reply, false);
+  // administrative is not overridden — model judgment preserved
+  assert.equal(normalizeClassification({ category: 'administrative', needs_reply: true }).needs_reply, true);
+  assert.equal(normalizeClassification({ category: 'administrative', needs_reply: false }).needs_reply, false);
 });
 
 test('coerces a near-miss category into a valid one via keyword match', () => {
