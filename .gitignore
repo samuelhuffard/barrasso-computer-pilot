@@ -4,3 +4,8 @@ benchmark-results/
 data/correspondence.json
 dashboard/.next/
 dashboard/node_modules/
+Drop/*.eml
+Drop/read/*.eml
+Drop/failed/*.eml
+testalerts/
+*.lnk
