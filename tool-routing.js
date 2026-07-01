@@ -1,13 +1,6 @@
 const TOOL_NAMES = Object.freeze({
   LOG_TRIAGE: 'log_triage',
   NOTIFY_STAFF: 'notify_staff',
-  CREATE_SAFETY_REVIEW: 'create_safety_review',
-  CREATE_CASE_REVIEW: 'create_case_review',
-  RECORD_CORRESPONDENCE_SIGNAL: 'record_correspondence_signal',
-  CREATE_DRAFT_REVIEW: 'create_draft_review',
-  CREATE_SCHEDULING_REVIEW: 'create_scheduling_review',
-  CREATE_SUBSCRIPTION_REVIEW: 'create_subscription_review',
-  CREATE_ADMIN_REVIEW: 'create_admin_review',
 });
 
 function action(tool, reason, payload, options = {}) {
@@ -43,65 +36,6 @@ function buildToolPlan(email, classification) {
       'Urgent safety or emergency classification requires immediate human review.',
       common,
       { execution: 'automatic_safe' },
-    ));
-  }
-
-  if (classification.category === 'threat_or_safety') {
-    actions.push(action(
-      TOOL_NAMES.CREATE_SAFETY_REVIEW,
-      'Safety-related correspondence requires a dedicated human review record.',
-      common,
-    ));
-  }
-
-  if (classification.category === 'casework') {
-    actions.push(action(
-      TOOL_NAMES.CREATE_CASE_REVIEW,
-      'Casework should enter a staff-reviewed intake workflow.',
-      common,
-    ));
-  }
-
-  if (classification.category === 'policy_opinion') {
-    actions.push(action(
-      TOOL_NAMES.RECORD_CORRESPONDENCE_SIGNAL,
-      'Policy correspondence can contribute to aggregate topic and sentiment reporting.',
-      {
-        ...common,
-        topics: classification.topics,
-        sentiment: classification.sentiment,
-      },
-      { execution: 'automatic_safe' },
-    ));
-  }
-
-  if (classification.category === 'administrative') {
-    if (classification.intent === 'request_meeting') {
-      actions.push(action(
-        TOOL_NAMES.CREATE_SCHEDULING_REVIEW,
-        'Meeting requests should enter the scheduling review queue.',
-        common,
-      ));
-    } else if (classification.intent === 'unsubscribe') {
-      actions.push(action(
-        TOOL_NAMES.CREATE_SUBSCRIPTION_REVIEW,
-        'Subscription changes require a controlled administrative workflow.',
-        common,
-      ));
-    } else {
-      actions.push(action(
-        TOOL_NAMES.CREATE_ADMIN_REVIEW,
-        'Administrative correspondence should enter the general staff review queue.',
-        common,
-      ));
-    }
-  }
-
-  if (classification.needs_reply && !classification.urgent) {
-    actions.push(action(
-      TOOL_NAMES.CREATE_DRAFT_REVIEW,
-      'The classifier identified a likely reply requirement; drafting remains human-reviewed.',
-      common,
     ));
   }
 

@@ -6,11 +6,9 @@
   "scripts": {
     "test": "node --test",
     "test:pilot": "node triage.js --test",
-    "benchmark": "node triage.js --benchmark",
-    "report": "node report.js"
+    "benchmark": "node triage.js --benchmark"
   },
   "dependencies": {
-    "@azure/msal-node": "^5.2.5",
     "mailparser": "^3.9.11"
   }
 }

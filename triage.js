@@ -1,6 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { fetchInboxMessages } from './graph.js';
 import { watchFolder } from './folder-watch.js';
 import { BENCHMARK_EMAILS } from './benchmark-emails.js';
 import { calculateMetrics, formatMetrics, validateClassification } from './evaluation.js';
@@ -10,7 +9,6 @@ import { normalizeClassification } from './normalize.js';
 import { classifyUrgentCategory } from './urgent-category-rules.js';
 import { recipientsFor } from './alert-routing.js';
 import { sendAlertEmail } from './send-alert.js';
-import { appendRecord, buildRecord } from './correspondence-store.js';
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
 const MODEL = process.env.TRIAGE_MODEL ?? 'llama3.2:3b';
@@ -161,7 +159,6 @@ async function processEmail(email) {
     handlers,
     [TOOL_NAMES.LOG_TRIAGE, TOOL_NAMES.NOTIFY_STAFF],
   );
-  await appendRecord(buildRecord(email, result));
   return { email, result, toolPlan, toolOutcomes, elapsedMs };
 }
 
@@ -266,12 +263,6 @@ async function runBenchmark() {
   }
 }
 
-async function runLive() {
-  console.log(`Fetching live inbox messages via Graph API using model "${MODEL}" at ${OLLAMA_URL}\n`);
-  const emails = await fetchInboxMessages();
-  await runTriage(emails);
-}
-
 async function classifyAndLog(email) {
   const processed = await processEmail(email);
   console.log(`[${email.id}] urgent=${processed.result.urgent} priority=${processed.result.priority} category=${processed.result.category} intent=${processed.result.intent} (${processed.elapsedMs}ms)`);
@@ -291,13 +282,6 @@ if (process.argv.includes('--test')) {
 if (process.argv.includes('--benchmark')) {
   runBenchmark().catch((err) => {
     console.error('Benchmark failed:', err.message);
-    process.exit(1);
-  });
-}
-
-if (process.argv.includes('--live')) {
-  runLive().catch((err) => {
-    console.error('Live triage run failed:', err.message);
     process.exit(1);
   });
 }
