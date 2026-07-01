@@ -32,9 +32,9 @@ async function parseEmlFile(filePath) {
 }
 
 async function pollFolder(folderPath, onEmail) {
-  const processedDir = join(folderPath, 'processed');
+  const readDir = join(folderPath, 'read');
   const failedDir = join(folderPath, 'failed');
-  await mkdir(processedDir, { recursive: true });
+  await mkdir(readDir, { recursive: true });
   await mkdir(failedDir, { recursive: true });
 
   const entries = await readdir(folderPath);
@@ -45,7 +45,7 @@ async function pollFolder(folderPath, onEmail) {
     try {
       const email = await parseEmlFile(filePath);
       await onEmail(email);
-      await rename(filePath, join(processedDir, name));
+      await rename(filePath, join(readDir, name));
     } catch (err) {
       console.error(`Failed to process ${name}, moving to ${failedDir}: ${err.message}`);
       await rename(filePath, join(failedDir, name));
@@ -55,8 +55,8 @@ async function pollFolder(folderPath, onEmail) {
   return emlFiles.length;
 }
 
-async function watchFolder(folderPath, onEmail, intervalMs = 30_000) {
-  console.log(`Watching ${folderPath} for new .eml files every ${intervalMs / 1000}s. Processed files move to ${join(folderPath, 'processed')}.`);
+async function watchFolder(folderPath, onEmail, intervalMs = 120_000) {
+  console.log(`Watching ${folderPath} for new .eml files every ${intervalMs / 1000}s. Triaged files move to ${join(folderPath, 'read')}.`);
 
   for (;;) {
     const count = await pollFolder(folderPath, onEmail);

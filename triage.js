@@ -290,11 +290,7 @@ if (process.argv.includes('--live')) {
 
 const watchIndex = process.argv.indexOf('--watch');
 if (watchIndex !== -1) {
-  const folderPath = process.argv[watchIndex + 1];
-  if (!folderPath) {
-    console.error('Usage: node triage.js --watch <folder-path>');
-    process.exit(1);
-  }
+  const folderPath = process.argv[watchIndex + 1] ?? fileURLToPath(new URL('./Drop', import.meta.url));
   runWatch(folderPath).catch((err) => {
     console.error('Folder watch failed:', err.message);
     process.exit(1);
