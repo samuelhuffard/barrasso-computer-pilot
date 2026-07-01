@@ -1,5 +1,23 @@
+// Urgent messages caused by circumstance (disaster, being stranded/detained
+// overseas, a medical/logistics emergency) are casework — the constituent is
+// asking for help, not reporting a threat from another person. See
+// urgent-category-rules.js for the full definition this mirrors.
+const URGENT_CASEWORK_PREFIXES = ['overseas-', 'disaster-'];
+const URGENT_CASEWORK_IDS = new Set(['medical-02', 'medical-03']);
+
+function isUrgentCasework(id) {
+  return URGENT_CASEWORK_IDS.has(id) || URGENT_CASEWORK_PREFIXES.some((prefix) => id.startsWith(prefix));
+}
+
 function expectedRoute(id, expectedUrgent) {
   if (expectedUrgent) {
+    if (isUrgentCasework(id)) {
+      return {
+        category: 'casework',
+        intent: 'request_assistance',
+        needsReply: true,
+      };
+    }
     return {
       category: 'threat_or_safety',
       intent: 'report_threat_or_safety',

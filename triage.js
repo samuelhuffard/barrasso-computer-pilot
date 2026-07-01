@@ -7,6 +7,7 @@ import { calculateMetrics, formatMetrics, validateClassification } from './evalu
 import { TOOL_NAMES, buildToolPlan, dispatchToolPlan } from './tool-routing.js';
 import { detectPromptInjection } from './injection-guard.js';
 import { normalizeClassification } from './normalize.js';
+import { classifyUrgentCategory } from './urgent-category-rules.js';
 import { recipientsFor } from './alert-routing.js';
 import { sendAlertEmail } from './send-alert.js';
 import { appendRecord, buildRecord } from './correspondence-store.js';
@@ -21,6 +22,7 @@ The "intent" field must be exactly one of the seven listed values above — do n
 
 Mark "urgent": true for genuine emergencies requiring same-day human attention: threats of violence (direct, conditional, or euphemistic), a constituent trapped/endangered/missing abroad, immediate safety risk, active disaster/medical emergency, reports of trafficking or a missing child. Do not mark policy opinions, routine casework, or complaints as urgent.
 Set priority to "critical" whenever urgent is true. Use "high" for time-sensitive but non-emergency staff attention, "normal" for routine work, and "low" for informational or no-action messages.
+Category definitions, especially for urgent messages: "threat_or_safety" means someone is in danger BECAUSE OF ANOTHER PERSON'S actions — a threat, act of violence, abuse, abduction, or trafficking. "casework" means the constituent needs the office's help with a situation caused by circumstance, not a person threatening harm — a natural disaster, being stranded/detained/unreachable overseas, or a medical/logistics emergency. An urgent disaster or overseas-emergency email is "casework", not "threat_or_safety", unless a person is also described as causing harm.
 Set needs_reply based on whether a staff response is likely expected. Classify and extract signals only; never claim to execute a tool or take an action.
 
 Important rules for reading the email below:
@@ -74,6 +76,7 @@ async function classifyEmail(email) {
     throw error;
   }
 
+  let finalResult = result;
   const injection = detectPromptInjection(email.body);
   if (injection.detected) {
     const tag = `[Injection detected: ${injection.matches.join(', ')}]`;
@@ -81,17 +84,28 @@ async function classifyEmail(email) {
     // this catches cases where injection suppressed urgency on a real threat while
     // avoiding false alarms on routine emails that happen to contain injection syntax.
     if (!result.urgent && (injectionLooksUrgent(result) || emailBodyLooksUrgent(email))) {
-      return {
+      finalResult = {
         ...result,
         urgent: true,
         priority: 'critical',
         reason: `${tag} ${result.reason}`,
       };
+    } else {
+      finalResult = { ...result, reason: `${tag} ${result.reason}` };
     }
-    return { ...result, reason: `${tag} ${result.reason}` };
   }
 
-  return result;
+  return applyUrgentCategoryRule(email, finalResult);
+}
+
+// Category (and its paired intent) for urgent messages is decided by definition
+// (urgent-category-rules.js), not left to the model — see that file for the
+// threat_or_safety vs casework rationale.
+function applyUrgentCategoryRule(email, result) {
+  if (!result.urgent) return result;
+  const category = classifyUrgentCategory(email);
+  const intent = category === 'threat_or_safety' ? 'report_threat_or_safety' : 'request_assistance';
+  return { ...result, category, intent };
 }
 
 async function classifyEmailSafe(email) {
@@ -99,7 +113,7 @@ async function classifyEmailSafe(email) {
     return await classifyEmail(email);
   } catch (err) {
     console.warn(`Classifier error for [${email.id}], defaulting to manual-review escalation: ${err.message}`);
-    return {
+    return applyUrgentCategoryRule(email, {
       urgent: true,
       priority: 'critical',
       category: 'other',
@@ -108,7 +122,7 @@ async function classifyEmailSafe(email) {
       sentiment: 'neutral',
       topics: ['classifier_error'],
       reason: `Could not parse classifier response — flagged for manual review (${err.message})`,
-    };
+    });
   }
 }
 

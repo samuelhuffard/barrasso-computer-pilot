@@ -26,6 +26,13 @@ function sendAlertEmail({ recipients, subject, body }) {
     let stderr = '';
     proc.stderr.on('data', (chunk) => { stderr += chunk; });
 
+    // Without this, a spawn failure (e.g. powershell.exe missing or unreachable)
+    // emits an unhandled 'error' event and crashes the whole triage/watch process
+    // instead of just failing this one alert.
+    proc.on('error', (err) => {
+      reject(new Error(`Failed to launch alert script: ${err.message}`));
+    });
+
     proc.on('close', (code) => {
       if (code === 0) resolve({ sent: true });
       else reject(new Error(`Alert script exited with code ${code}: ${stderr}`));
